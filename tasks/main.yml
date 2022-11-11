@@ -66,7 +66,7 @@
   community.docker.docker_container:
     name: portainer
     image: portainer/portainer
-    ports: "{portainer_port}:9000"
+    ports: "{{portainer_port}}:9000"
     #env:
     #  VIRTUAL_HOST: "portainer.{{ inventory_hostname }}"
     #  VIRTUAL_PORT: "9000"
