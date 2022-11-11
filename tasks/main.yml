@@ -1,0 +1,79 @@
+---
+- name: install prerequisites
+  apt:
+    state: latest
+    update_cache: yes
+    name:
+      - apt-transport-https
+      - ca-certificates 
+      - curl 
+      - gnupg
+      - lsb-release
+      - python3
+      - pip
+
+- name: add apt-key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: add docker repo
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu focal stable
+    state: present
+
+- name: install docker 
+  apt:
+    state: latest
+    update_cache: yes
+    name: 
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+
+- name: install docker module for python
+  pip:
+    name: docker
+
+- name: add deploy user to docker group
+  user:
+    name: "{{ deploy_user }}"
+    groups: ["docker"]
+    append: yes
+
+- name: add current user to docker group
+  user:
+    name: "{{ lookup('env','USER') }}"
+    groups: ["docker"]
+    append: yes
+
+# For automatic container upgrades.
+- name: deploy watchtower
+  community.docker.docker_container:
+    name: watchtower
+    image: containrrr/watchtower
+    command: --schedule "0 0 * * *"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart_policy: always
+    healthcheck:
+      interval: "30s"
+      retries: "3"
+
+# For container debugging.
+- name: deploy portainer
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer
+    ports: "{portainer_port}:9000"
+    #env:
+    #  VIRTUAL_HOST: "portainer.{{ inventory_hostname }}"
+    #  VIRTUAL_PORT: "9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/portainer:/data
+    restart_policy: always
+    healthcheck:
+      interval: "30s"
+      retries: "3"
